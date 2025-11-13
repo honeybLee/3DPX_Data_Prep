@@ -5,8 +5,14 @@ import shutil
 from pathlib import Path
 from collections import defaultdict
 from datetime import datetime
-import tkinter as tk
-from tkinter import filedialog
+
+# tkinter는 로컬 환경에서만 사용 가능
+try:
+    import tkinter as tk
+    from tkinter import filedialog
+    TKINTER_AVAILABLE = True
+except ImportError:
+    TKINTER_AVAILABLE = False
 
 st.set_page_config(page_title="이미지 분류 도구", page_icon="📁", layout="wide")
 
@@ -17,19 +23,27 @@ if 'output_folder' not in st.session_state:
     st.session_state.output_folder = ""
 
 def select_folder(folder_type):
-    """폴더 선택 대화상자 열기"""
-    root = tk.Tk()
-    root.withdraw()
-    root.wm_attributes('-topmost', 1)
-    folder_path = filedialog.askdirectory(master=root)
-    root.destroy()
+    """폴더 선택 대화상자 열기 (로컬 환경에서만 작동)"""
+    if not TKINTER_AVAILABLE:
+        st.warning("⚠️ 폴더 선택 기능은 로컬 환경에서만 사용 가능합니다. 경로를 직접 입력해주세요.")
+        return None
     
-    if folder_path:
-        if folder_type == "input":
-            st.session_state.input_folder = folder_path
-        elif folder_type == "output":
-            st.session_state.output_folder = folder_path
-    return folder_path
+    try:
+        root = tk.Tk()
+        root.withdraw()
+        root.wm_attributes('-topmost', 1)
+        folder_path = filedialog.askdirectory(master=root)
+        root.destroy()
+        
+        if folder_path:
+            if folder_type == "input":
+                st.session_state.input_folder = folder_path
+            elif folder_type == "output":
+                st.session_state.output_folder = folder_path
+        return folder_path
+    except Exception as e:
+        st.error(f"❌ 폴더 선택 중 오류 발생: {str(e)}")
+        return None
 
 def parse_filename(filename):
     """
@@ -194,26 +208,32 @@ col1, col2 = st.columns(2)
 
 with col1:
     st.write("**🔍 입력 폴더 경로**")
-    col1_1, col1_2 = st.columns([3, 1])
-    with col1_1:
+    if TKINTER_AVAILABLE:
+        col1_1, col1_2 = st.columns([3, 1])
+        with col1_1:
+            input_folder = st.text_input("입력 폴더", value=st.session_state.input_folder, placeholder="예: C:/images/input", label_visibility="collapsed", key="input_text")
+        with col1_2:
+            if st.button("📁 선택", key="input_btn", use_container_width=True):
+                select_folder("input")
+                st.rerun()
+    else:
         input_folder = st.text_input("입력 폴더", value=st.session_state.input_folder, placeholder="예: C:/images/input", label_visibility="collapsed", key="input_text")
-    with col1_2:
-        if st.button("📁 선택", key="input_btn", use_container_width=True):
-            select_folder("input")
-            st.rerun()
     # 텍스트 입력으로 변경된 경우 세션 상태 업데이트
     if input_folder != st.session_state.input_folder:
         st.session_state.input_folder = input_folder
 
 with col2:
     st.write("**💾 출력 폴더 경로**")
-    col2_1, col2_2 = st.columns([3, 1])
-    with col2_1:
+    if TKINTER_AVAILABLE:
+        col2_1, col2_2 = st.columns([3, 1])
+        with col2_1:
+            output_folder = st.text_input("출력 폴더", value=st.session_state.output_folder, placeholder="예: C:/images/output", label_visibility="collapsed", key="output_text")
+        with col2_2:
+            if st.button("📁 선택", key="output_btn", use_container_width=True):
+                select_folder("output")
+                st.rerun()
+    else:
         output_folder = st.text_input("출력 폴더", value=st.session_state.output_folder, placeholder="예: C:/images/output", label_visibility="collapsed", key="output_text")
-    with col2_2:
-        if st.button("📁 선택", key="output_btn", use_container_width=True):
-            select_folder("output")
-            st.rerun()
     # 텍스트 입력으로 변경된 경우 세션 상태 업데이트
     if output_folder != st.session_state.output_folder:
         st.session_state.output_folder = output_folder
